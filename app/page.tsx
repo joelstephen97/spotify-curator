@@ -728,6 +728,25 @@ const AUTH_ERRORS: Record<string, string> = {
   exchange_failed: "Couldn't complete the Spotify login. Please try again.",
 };
 
+// Safe, fixed diagnostic codes from the callback (no raw error text).
+const AUTH_DETAILS: Record<string, string> = {
+  invalid_grant:
+    "Spotify rejected the authorization code (expired/reused or a redirect-URI mismatch). Try once more at 127.0.0.1:3000.",
+  invalid_client: "App credentials rejected — check SPOTIFY_CLIENT_ID / SECRET.",
+  redirect_mismatch:
+    "Redirect-URI mismatch — the dashboard URI must exactly equal SPOTIFY_REDIRECT_URI.",
+  profile_unavailable: "Couldn't read your Spotify profile (permissions).",
+  store_unavailable:
+    "Couldn't reach the data store — check UPSTASH_REDIS_REST_URL / TOKEN.",
+  session_config: "SESSION_SECRET is missing or invalid in .env.local.",
+  unknown: "Unexpected error — check the dev server logs for details.",
+};
+const authDetailText = (code: string) =>
+  AUTH_DETAILS[code] ??
+  (code.startsWith("token_")
+    ? `Spotify token endpoint returned HTTP ${code.slice(6)} — check the server logs.`
+    : null);
+
 function Disconnected() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authDetail, setAuthDetail] = useState<string | null>(null);
@@ -736,7 +755,7 @@ function Disconnected() {
     const code = params.get("auth_error");
     if (code) setAuthError(AUTH_ERRORS[code] ?? `Login failed (${code}).`);
     const detail = params.get("auth_detail");
-    if (detail) setAuthDetail(detail);
+    if (detail) setAuthDetail(authDetailText(detail));
   }, []);
 
   return (
