@@ -47,8 +47,10 @@ export default function DiscoveriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">This week&apos;s picks</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">
+          This week&apos;s picks
+        </h1>
         <button
           onClick={runNow}
           disabled={running}
@@ -58,10 +60,12 @@ export default function DiscoveriesPage() {
         </button>
       </div>
 
-      {message && <p className="text-sm text-neutral-400">{message}</p>}
+      {message && (
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">{message}</p>
+      )}
 
       {picks.length === 0 ? (
-        <p className="text-neutral-400">
+        <p className="text-neutral-600 dark:text-neutral-400">
           No discoveries yet. Run it now, or wait for the weekly job.
         </p>
       ) : (
@@ -69,11 +73,11 @@ export default function DiscoveriesPage() {
           {picks.map((p) => (
             <li
               key={p.uri}
-              className="rounded-lg border border-neutral-800 p-4"
+              className="rounded-lg border border-black/10 p-4 dark:border-white/10"
             >
-              <div className="font-medium">
+              <div className="font-medium text-neutral-900 dark:text-neutral-100">
                 {p.title}{" "}
-                <span className="text-neutral-400">— {p.artist}</span>
+                <span className="text-neutral-500">— {p.artist}</span>
               </div>
               <p className="mt-1 text-sm text-neutral-500">{p.reason}</p>
             </li>

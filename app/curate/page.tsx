@@ -37,8 +37,10 @@ export default function CuratePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Curate from your library</h1>
-        <p className="mt-1 text-neutral-400">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">
+          Curate from your library
+        </h1>
+        <p className="mt-1 text-neutral-600 dark:text-neutral-400">
           Build a new playlist from your saved (liked) tracks.
         </p>
       </div>
@@ -48,7 +50,7 @@ export default function CuratePage() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="New playlist name"
-          className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-2 outline-none focus:border-emerald-500"
+          className="flex-1 rounded-lg border border-black/15 bg-transparent px-4 py-2 outline-none focus:border-emerald-500 dark:border-white/15"
         />
         <button
           type="submit"
@@ -59,7 +61,9 @@ export default function CuratePage() {
         </button>
       </form>
 
-      {message && <p className="text-sm text-neutral-400">{message}</p>}
+      {message && (
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">{message}</p>
+      )}
     </div>
   );
 }

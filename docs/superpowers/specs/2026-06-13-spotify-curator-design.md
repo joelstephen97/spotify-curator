@@ -36,8 +36,8 @@ each track was chosen.
   "already seen" track/artist cache for dedup.
 - **Spotify Web API** — direct `fetch` calls (no heavy SDK).
 - **Anthropic Claude API** (`@anthropic-ai/sdk`) — discovery + explanations.
-  Default model: `claude-sonnet-4-6` (quality/cost balance for small structured calls).
-  *Verify model id and SDK usage against the `claude-api` skill at implementation time.*
+  Model: `claude-opus-4-8` (the `claude-api` skill's default; user named no model).
+  Structured suggestions via a forced tool call (`tool_choice` → `suggest_tracks`).
 
 ## Architecture
 

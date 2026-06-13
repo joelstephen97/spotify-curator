@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js + TypeScript, Tailwind CSS + shadcn/ui, Vitest (unit/integration with mocked APIs), Upstash Redis (`@upstash/redis`), Spotify Web API (direct `fetch`), Anthropic Claude (`@anthropic-ai/sdk`).
 
-> **Note on Claude integration (Task 9):** Before writing `lib/discovery/recommend.ts`, consult the `claude-api` skill to confirm the current model id and `@anthropic-ai/sdk` usage. This plan assumes `claude-sonnet-4-6` and structured JSON output via a tool call.
+> **Note on Claude integration:** Per the `claude-api` skill, the model is `claude-opus-4-8` (the skill's default; the user named no model). Structured output is forced via `tool_choice` → `suggest_tracks`. Thinking is left off for this single forced-tool extraction call.
 
 ---
 
@@ -865,7 +865,7 @@ export async function recommend(client: Anthropic, profile: Profile, count: numb
   ].join("\n");
 
   const res = await client.messages.create({
-    model: "claude-sonnet-4-6",
+    model: "claude-opus-4-8",
     max_tokens: 1500,
     tools: [TOOL],
     tool_choice: { type: "tool", name: "suggest_tracks" },
