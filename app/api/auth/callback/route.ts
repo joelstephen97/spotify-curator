@@ -4,6 +4,7 @@ import { sealSession } from "@/lib/session";
 import { SpotifyClient } from "@/lib/spotify/client";
 import { getProfile } from "@/lib/spotify/data";
 import { userStore, registry } from "@/lib/store/redis";
+import { appBaseUrl } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,9 @@ const SECURE = process.env.NODE_ENV === "production";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const home = new URL("/", req.url);
+  // Redirect on the host the user actually used (req.url is normalized to
+  // localhost in dev, which would break cookies set on 127.0.0.1).
+  const home = new URL("/", appBaseUrl(req));
 
   // Always land the user back in the app — never dump a raw JSON/error page.
   const fail = (reason: string) => {
