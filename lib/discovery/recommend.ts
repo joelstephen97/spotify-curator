@@ -64,7 +64,9 @@ export async function recommend(
   ].join("\n");
 
   const res = await client.messages.create({
-    model: "claude-opus-4-8",
+    // Haiku 4.5: fast, near-frontier, and far cheaper for this curation task.
+    // Override with DISCOVERY_MODEL if you ever want a larger model.
+    model: process.env.DISCOVERY_MODEL ?? "claude-haiku-4-5-20251001",
     // Generous headroom: many suggestions, each with a real reason. Too small a
     // budget truncates the tool output and silently yields zero usable picks.
     max_tokens: 8192,
