@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 
 const LINKS = [
@@ -13,6 +14,14 @@ const LINKS = [
 
 export default function Nav() {
   const pathname = usePathname();
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((d) => setConnected(Boolean(d.connected)))
+      .catch(() => {});
+  }, [pathname]);
   return (
     <header className="sticky top-0 z-10 border-b border-black/5 bg-white/70 backdrop-blur dark:border-white/5 dark:bg-[#07080a]/70">
       <nav className="mx-auto flex w-full max-w-5xl items-center gap-6 px-5 py-4">
@@ -39,6 +48,14 @@ export default function Nav() {
               </Link>
             );
           })}
+          {connected && (
+            <a
+              href="/api/auth/logout"
+              className="rounded-full px-3 py-1.5 text-neutral-500 transition-colors hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-400"
+            >
+              Log out
+            </a>
+          )}
           <ThemeToggle />
         </div>
       </nav>
