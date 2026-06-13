@@ -34,7 +34,9 @@ export async function GET(req: NextRequest) {
     const [topArtists, topTracks, recent] = await Promise.all([
       getTopArtists(client, range),
       getTopTracks(client, range),
-      getRecentlyPlayed(client),
+      // Recently-played is non-essential and can 403/204 in edge cases — never
+      // let it sink the whole stats response.
+      getRecentlyPlayed(client).catch(() => []),
     ]);
     return NextResponse.json({
       range,

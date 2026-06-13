@@ -5,11 +5,19 @@ export async function getOrCreatePlaylist(
   name: string,
 ): Promise<string> {
   const me = await c.get<{ id: string }>("/me");
-  const lists = await c.get<{ items: { id: string; name: string }[] }>(
-    "/me/playlists?limit=50",
-  );
-  const existing = lists.items.find((p) => p.name === name);
-  if (existing) return existing.id;
+
+  // Page through ALL of the user's playlists — only checking the first 50 would
+  // miss an existing bot playlist and create a duplicate every run.
+  for (let offset = 0; offset < 1000; offset += 50) {
+    const lists = await c.get<{
+      items: { id: string; name: string }[];
+      next: string | null;
+    }>(`/me/playlists?limit=50&offset=${offset}`);
+    const existing = lists.items.find((p) => p.name === name);
+    if (existing) return existing.id;
+    if (!lists.next || lists.items.length === 0) break;
+  }
+
   const created = await c.post<{ id: string }>(`/users/${me.id}/playlists`, {
     name,
     public: false,

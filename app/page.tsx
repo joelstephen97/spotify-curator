@@ -450,9 +450,27 @@ function Skeleton() {
   );
 }
 
+const AUTH_ERRORS: Record<string, string> = {
+  access_denied: "You declined the Spotify authorization.",
+  state_mismatch:
+    "Login couldn't be verified (cookies may have been blocked). Please try again.",
+  exchange_failed: "Couldn't complete the Spotify login. Please try again.",
+};
+
 function Disconnected() {
+  const [authError, setAuthError] = useState<string | null>(null);
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("auth_error");
+    if (code) setAuthError(AUTH_ERRORS[code] ?? `Login failed (${code}).`);
+  }, []);
+
   return (
     <Rise className="mx-auto max-w-xl space-y-6 py-16 text-center">
+      {authError && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          {authError}
+        </div>
+      )}
       <p className="font-mono text-xs uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400/80">
         Spotify Curator
       </p>

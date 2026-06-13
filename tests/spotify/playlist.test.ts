@@ -26,6 +26,24 @@ describe("playlist", () => {
     expect(id).toBe("new1");
   });
 
+  it("finds an existing playlist on a later page (pagination)", async () => {
+    const f = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ id: "me" }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          items: [{ id: "x", name: "Other" }],
+          next: "https://api.spotify.com/v1/me/playlists?offset=50",
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [{ id: "pl2", name: "Bot" }], next: null }),
+      );
+    const id = await getOrCreatePlaylist(new SpotifyClient("t", f), "Bot");
+    expect(id).toBe("pl2");
+    expect(f).toHaveBeenCalledTimes(3); // /me + 2 pages, no create
+  });
+
   it("adds tracks to a playlist", async () => {
     const f = vi.fn().mockResolvedValue(jsonResponse({ snapshot_id: "s1" }, 201));
     await addTracks(new SpotifyClient("t", f), "pl1", ["spotify:track:1"]);
