@@ -1,8 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { buildProfile, seenKeys } from "@/lib/discovery/profile";
 
-const artists = [{ id: "1", name: "Radiohead", genres: ["alt rock", "indie"] }];
-const tracks = [{ id: "9", name: "Idioteque", artist: "Radiohead" }];
+const artists = [
+  { id: "1", name: "Radiohead", genres: ["alt rock", "indie"], image: null },
+];
+const tracks = [
+  { id: "9", name: "Idioteque", artist: "Radiohead", image: null },
+];
 
 describe("profile", () => {
   it("summarizes genres and representative artists/tracks", () => {

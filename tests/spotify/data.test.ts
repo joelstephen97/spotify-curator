@@ -14,19 +14,27 @@ function clientReturning(payload: unknown) {
 }
 
 describe("spotify data", () => {
-  it("maps top artists", async () => {
+  it("maps top artists with their image", async () => {
     const c = clientReturning({
-      items: [{ id: "1", name: "Radiohead", genres: ["alt rock"] }],
+      items: [
+        {
+          id: "1",
+          name: "Radiohead",
+          genres: ["alt rock"],
+          images: [{ url: "https://img/rh.jpg" }],
+        },
+      ],
     });
     const artists = await getTopArtists(c, "medium_term");
     expect(artists[0]).toEqual({
       id: "1",
       name: "Radiohead",
       genres: ["alt rock"],
+      image: "https://img/rh.jpg",
     });
   });
 
-  it("maps recently played to track names", async () => {
+  it("maps recently played with album art, null when missing", async () => {
     const c = clientReturning({
       items: [
         {
@@ -34,19 +42,25 @@ describe("spotify data", () => {
             id: "9",
             name: "Idioteque",
             artists: [{ name: "Radiohead" }],
+            album: { images: [{ url: "https://img/kida.jpg" }] },
           },
         },
       ],
     });
     const recent = await getRecentlyPlayed(c);
-    expect(recent[0]).toEqual({ id: "9", name: "Idioteque", artist: "Radiohead" });
+    expect(recent[0]).toEqual({
+      id: "9",
+      name: "Idioteque",
+      artist: "Radiohead",
+      image: "https://img/kida.jpg",
+    });
   });
 
   it("derives top genres by frequency", () => {
     const genres = deriveTopGenres(
       [
-        { id: "1", name: "A", genres: ["rock", "indie"] },
-        { id: "2", name: "B", genres: ["rock"] },
+        { id: "1", name: "A", genres: ["rock", "indie"], image: null },
+        { id: "2", name: "B", genres: ["rock"], image: null },
       ],
       1,
     );

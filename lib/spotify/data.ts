@@ -4,27 +4,62 @@ export interface Artist {
   id: string;
   name: string;
   genres: string[];
+  image: string | null;
 }
 export interface Track {
   id: string;
   name: string;
   artist: string;
+  image: string | null;
 }
 export type TimeRange = "short_term" | "medium_term" | "long_term";
+
+interface SpotifyImage {
+  url: string;
+}
+interface RawArtist {
+  id: string;
+  name: string;
+  genres?: string[];
+  images?: SpotifyImage[];
+}
+interface RawTrack {
+  id: string;
+  name: string;
+  artists: { name: string }[];
+  album?: { images?: SpotifyImage[] };
+}
+
+const firstImage = (images?: SpotifyImage[]): string | null =>
+  images && images.length ? images[0].url : null;
+
+function mapArtist(a: RawArtist): Artist {
+  return {
+    id: a.id,
+    name: a.name,
+    genres: a.genres ?? [],
+    image: firstImage(a.images),
+  };
+}
+
+function mapTrack(t: RawTrack): Track {
+  return {
+    id: t.id,
+    name: t.name,
+    artist: t.artists[0]?.name ?? "",
+    image: firstImage(t.album?.images),
+  };
+}
 
 export async function getTopArtists(
   c: SpotifyClient,
   range: TimeRange,
   limit = 50,
 ): Promise<Artist[]> {
-  const data = await c.get<{
-    items: { id: string; name: string; genres?: string[] }[];
-  }>(`/me/top/artists?time_range=${range}&limit=${limit}`);
-  return data.items.map((a) => ({
-    id: a.id,
-    name: a.name,
-    genres: a.genres ?? [],
-  }));
+  const data = await c.get<{ items: RawArtist[] }>(
+    `/me/top/artists?time_range=${range}&limit=${limit}`,
+  );
+  return data.items.map(mapArtist);
 }
 
 export async function getTopTracks(
@@ -32,46 +67,30 @@ export async function getTopTracks(
   range: TimeRange,
   limit = 50,
 ): Promise<Track[]> {
-  const data = await c.get<{
-    items: { id: string; name: string; artists: { name: string }[] }[];
-  }>(`/me/top/tracks?time_range=${range}&limit=${limit}`);
-  return data.items.map((t) => ({
-    id: t.id,
-    name: t.name,
-    artist: t.artists[0]?.name ?? "",
-  }));
+  const data = await c.get<{ items: RawTrack[] }>(
+    `/me/top/tracks?time_range=${range}&limit=${limit}`,
+  );
+  return data.items.map(mapTrack);
 }
 
 export async function getRecentlyPlayed(
   c: SpotifyClient,
   limit = 50,
 ): Promise<Track[]> {
-  const data = await c.get<{
-    items: {
-      track: { id: string; name: string; artists: { name: string }[] };
-    }[];
-  }>(`/me/player/recently-played?limit=${limit}`);
-  return data.items.map((i) => ({
-    id: i.track.id,
-    name: i.track.name,
-    artist: i.track.artists[0]?.name ?? "",
-  }));
+  const data = await c.get<{ items: { track: RawTrack }[] }>(
+    `/me/player/recently-played?limit=${limit}`,
+  );
+  return data.items.map((i) => mapTrack(i.track));
 }
 
 export async function getSavedTracks(
   c: SpotifyClient,
   limit = 50,
 ): Promise<Track[]> {
-  const data = await c.get<{
-    items: {
-      track: { id: string; name: string; artists: { name: string }[] };
-    }[];
-  }>(`/me/tracks?limit=${limit}`);
-  return data.items.map((i) => ({
-    id: i.track.id,
-    name: i.track.name,
-    artist: i.track.artists[0]?.name ?? "",
-  }));
+  const data = await c.get<{ items: { track: RawTrack }[] }>(
+    `/me/tracks?limit=${limit}`,
+  );
+  return data.items.map((i) => mapTrack(i.track));
 }
 
 export function deriveTopGenres(artists: Artist[], limit = 10): string[] {
