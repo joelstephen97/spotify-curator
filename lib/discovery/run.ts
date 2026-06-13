@@ -12,7 +12,11 @@ import { runDiscovery } from "@/lib/discovery/pipeline";
 import { userStore, registry } from "@/lib/store/redis";
 
 export type DiscoveryRunResult =
-  | { ok: true; added: { artist: string; title: string; reason: string; uri: string }[] }
+  | {
+      ok: true;
+      added: { artist: string; title: string; reason: string; uri: string }[];
+      playlistUpdated: boolean;
+    }
   | { ok: false; reason: "not_connected" };
 
 export interface DiscoveryStatus {
@@ -21,6 +25,7 @@ export interface DiscoveryStatus {
   startedAt: number;
   finishedAt?: number;
   added?: number;
+  playlistUpdated?: boolean;
   error?: string;
 }
 
@@ -75,10 +80,8 @@ export async function runDiscoveryForUser(
     const tokens = await refreshAccessToken(spotifyConfig(), refresh);
     const client = new SpotifyClient(tokens.accessToken);
     const anthropic = defaultAnthropic();
-    const playlistId = await getOrCreatePlaylist(
-      client,
-      process.env.DISCOVERY_PLAYLIST_NAME ?? "🤖 Weekly Discoveries",
-    );
+    const name = process.env.DISCOVERY_PLAYLIST_NAME ?? "🤖 Weekly Discoveries";
+    const cap = Number(process.env.DISCOVERY_PLAYLIST_CAP ?? "50");
 
     const result = await runDiscovery(
       {
@@ -94,7 +97,14 @@ export async function runDiscoveryForUser(
         recommend: (profile, count) => recommend(anthropic, profile, count),
         resolve: (s) => resolveTrack(client, s),
         isSeen: (key) => store.isSeen(key),
-        addTracks: (uris) => addTracks(client, playlistId, uris),
+        // Create + fill the playlist together. Development-Mode apps are blocked
+        // from playlist writes (403); the pipeline catches this so the picks are
+        // still saved and shown — the playlist is just a bonus.
+        addTracks: async (uris) => {
+          const playlistId = await getOrCreatePlaylist(client, name);
+          await addTracks(client, playlistId, uris);
+          await trimToCap(client, playlistId, cap);
+        },
         markSeen: (keys) => store.markSeen(keys),
         setLatestPicks: (picks) => store.setLatestPicks(picks),
         onStep: (step) =>
@@ -103,20 +113,21 @@ export async function runDiscoveryForUser(
       { targetCount: Number(process.env.DISCOVERY_TARGET_COUNT ?? "20") },
     );
 
-    await trimToCap(
-      client,
-      playlistId,
-      Number(process.env.DISCOVERY_PLAYLIST_CAP ?? "50"),
-    );
-
     await writeStatus(userId, {
       state: "done",
-      step: `Added ${result.added.length} tracks`,
+      step: result.playlistUpdated
+        ? `Added ${result.added.length} tracks to your playlist`
+        : `Found ${result.added.length} picks (playlist write blocked)`,
       startedAt: now,
       finishedAt: Date.now(),
       added: result.added.length,
+      playlistUpdated: result.playlistUpdated,
     });
-    return { ok: true, added: result.added };
+    return {
+      ok: true,
+      added: result.added,
+      playlistUpdated: result.playlistUpdated,
+    };
   } catch (e) {
     const raw = e instanceof Error ? e.message : String(e);
     // A 403 on a write means Spotify's Development-Mode allowlist is blocking

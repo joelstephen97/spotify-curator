@@ -77,9 +77,18 @@ export async function runDiscovery(
     });
   }
 
-  await deps.onStep?.(`Adding ${added.length} new tracks to your playlist…`);
+  await deps.onStep?.(`Saving ${added.length} picks…`);
 
-  await deps.addTracks(added.map((a) => a.uri));
+  // Adding to the Spotify playlist is best-effort: Development-Mode apps are
+  // currently blocked from playlist writes (403), so we still persist & show
+  // the picks even when the playlist can't be updated.
+  let playlistUpdated = true;
+  try {
+    await deps.addTracks(added.map((a) => a.uri));
+  } catch {
+    playlistUpdated = false;
+  }
+
   await deps.markSeen([
     ...seenKeys(signals),
     ...added.flatMap((a) => [
@@ -88,5 +97,5 @@ export async function runDiscovery(
     ]),
   ]);
   await deps.setLatestPicks(added);
-  return { added };
+  return { added, playlistUpdated };
 }

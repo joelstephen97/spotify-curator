@@ -17,6 +17,7 @@ interface Status {
   state: "idle" | "running" | "done" | "error";
   step: string;
   added?: number;
+  playlistUpdated?: boolean;
   error?: string;
 }
 
@@ -190,10 +191,24 @@ export default function DiscoveriesPage() {
             animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.07] px-5 py-4"
           >
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-              ✓ Added {status.added ?? 0} new track{status.added === 1 ? "" : "s"} to
-              your playlist.
-            </p>
+            {status.playlistUpdated ? (
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                ✓ Added {status.added ?? 0} new track
+                {status.added === 1 ? "" : "s"} to your playlist.
+              </p>
+            ) : (
+              <div className="text-sm text-emerald-700 dark:text-emerald-300">
+                <p className="font-medium">
+                  ✓ Found {status.added ?? 0} fresh pick
+                  {status.added === 1 ? "" : "s"} for you — listed below.
+                </p>
+                <p className="mt-1 text-neutral-600 dark:text-neutral-400">
+                  Auto-adding them to a Spotify playlist needs Extended Quota Mode
+                  — Spotify blocks playlist writes for apps in Development Mode.
+                  For now, open or ▶ preview each pick below.
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
 

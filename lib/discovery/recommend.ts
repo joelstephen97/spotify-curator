@@ -45,7 +45,9 @@ export async function recommend(
 
   const res = await client.messages.create({
     model: "claude-opus-4-8",
-    max_tokens: 1500,
+    // Headroom for ~30 suggestions with reasons — 1500 truncated the tool
+    // output, which silently yielded zero usable picks.
+    max_tokens: 4096,
     tools: [TOOL],
     tool_choice: { type: "tool", name: "suggest_tracks" },
     messages: [{ role: "user", content: prompt }],
