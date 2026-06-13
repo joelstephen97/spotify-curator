@@ -195,11 +195,17 @@ export default function DiscoveriesPage() {
             AI discovery
           </p>
           <h1 className="mt-1 font-display text-4xl font-extrabold tracking-tight">
-            This week&apos;s picks
+            Your discoveries
+            {picks.length > 0 && (
+              <span className="ml-2 align-middle text-base font-semibold text-neutral-400">
+                {picks.length}
+              </span>
+            )}
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Claude studies your taste and drops fresh, unheard tracks into your{" "}
-            <span className="font-medium">🤖 Weekly Discoveries</span> playlist.
+            Claude studies your top artists, recent plays and{" "}
+            <span className="font-medium">liked songs</span> to surface fresh,
+            unheard tracks. Every pick is kept here, newest first.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

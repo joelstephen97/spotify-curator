@@ -4,6 +4,7 @@ import {
   getTopArtists,
   getTopTracks,
   getRecentlyPlayed,
+  getAllSavedTracks,
 } from "@/lib/spotify/data";
 import { resolveTrack } from "@/lib/spotify/search";
 import { getOrCreatePlaylist, addTracks, trimToCap } from "@/lib/spotify/playlist";
@@ -93,6 +94,10 @@ export async function runDiscoveryForUser(
           ],
           topTracks: await getTopTracks(client, "medium_term"),
           recent: await getRecentlyPlayed(client),
+          // Liked songs feed taste + dedup. Capped so a huge library can't
+          // stall the run.
+          saved: (await getAllSavedTracks(client, 1000).catch(() => ({ tracks: [] })))
+            .tracks,
         }),
         recommend: (profile, count) => recommend(anthropic, profile, count),
         resolve: (s) => resolveTrack(client, s),

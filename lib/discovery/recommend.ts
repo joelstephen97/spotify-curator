@@ -60,7 +60,7 @@ export async function recommend(
     `Return exactly ${count} suggestions.`,
     `Top genres: ${profile.topGenres.join(", ")}`,
     `Favourite artists (avoid these): ${profile.artists.join(", ")}`,
-    `Recent plays: ${profile.recentTracks.join("; ")}`,
+    `Liked songs (their saved library — the core of their taste; find more in this spirit, but never re-suggest these): ${profile.lovedTracks.join("; ")}`,
   ].join("\n");
 
   const res = await client.messages.create({

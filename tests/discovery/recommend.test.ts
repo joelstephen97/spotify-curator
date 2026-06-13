@@ -4,7 +4,7 @@ import { recommend } from "@/lib/discovery/recommend";
 const profile = {
   topGenres: ["alt rock"],
   artists: ["Radiohead"],
-  recentTracks: ["Idioteque — Radiohead"],
+  lovedTracks: ["Weird Fishes — Radiohead"],
 };
 
 describe("recommend", () => {
