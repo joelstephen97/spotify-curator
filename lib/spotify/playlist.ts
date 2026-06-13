@@ -1,0 +1,51 @@
+import type { SpotifyClient } from "./client";
+
+export async function getOrCreatePlaylist(
+  c: SpotifyClient,
+  name: string,
+): Promise<string> {
+  const me = await c.get<{ id: string }>("/me");
+  const lists = await c.get<{ items: { id: string; name: string }[] }>(
+    "/me/playlists?limit=50",
+  );
+  const existing = lists.items.find((p) => p.name === name);
+  if (existing) return existing.id;
+  const created = await c.post<{ id: string }>(`/users/${me.id}/playlists`, {
+    name,
+    public: false,
+    description: "Weekly AI-curated discoveries.",
+  });
+  return created.id;
+}
+
+export async function addTracks(
+  c: SpotifyClient,
+  playlistId: string,
+  uris: string[],
+): Promise<void> {
+  if (!uris.length) return;
+  await c.post(`/playlists/${playlistId}/tracks`, { uris });
+}
+
+export async function getPlaylistTrackUris(
+  c: SpotifyClient,
+  playlistId: string,
+): Promise<string[]> {
+  const data = await c.get<{ items: { track: { uri: string } | null }[] }>(
+    `/playlists/${playlistId}/tracks?fields=items(track(uri))&limit=100`,
+  );
+  return data.items
+    .map((i) => i.track?.uri)
+    .filter((u): u is string => Boolean(u));
+}
+
+export async function trimToCap(
+  c: SpotifyClient,
+  playlistId: string,
+  cap: number,
+): Promise<void> {
+  const uris = await getPlaylistTrackUris(c, playlistId);
+  if (uris.length <= cap) return;
+  const remove = uris.slice(0, uris.length - cap).map((uri) => ({ uri }));
+  await c.del(`/playlists/${playlistId}/tracks`, { tracks: remove });
+}
