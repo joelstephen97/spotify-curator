@@ -45,7 +45,12 @@ interface History {
 }
 interface Stats {
   range: string;
-  profile: { displayName: string; image: string | null; followers: number } | null;
+  profile: {
+    displayName: string;
+    image: string | null;
+    followers: number;
+    product?: string | null;
+  } | null;
   counts: { followedArtists: number; playlists: number };
   topArtists: Artist[];
   topTracks: Track[];
@@ -304,6 +309,16 @@ function Report({
 
   return (
     <div className="space-y-14">
+      {data.profile?.product === "free" && (
+        <Rise className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200">
+          <span className="font-semibold">Heads up — your Spotify is Free.</span>{" "}
+          Stats and your Soundprint work fine, but playlist features (AI discovery
+          &amp; curation) need the app owner to be <strong>Premium</strong> while the
+          app is in Spotify <em>Development Mode</em>, or they&apos;ll return 403.
+          Upgrade, or request Extended Quota Mode in the Spotify dashboard.
+        </Rise>
+      )}
+
       {/* The brag strip — real, live numbers. Any card with no data (0 or null)
           is left out, so it never reads as broken. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

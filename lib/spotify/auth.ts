@@ -16,6 +16,8 @@ const SCOPES = [
   "playlist-read-private",
   "playlist-modify-private",
   "playlist-modify-public",
+  "user-read-private", // lets us read product (free/premium) to warn about the
+  // Development-Mode owner-Premium requirement that blocks playlist writes
 ].join(" ");
 
 export function spotifyConfig(): SpotifyConfig {
