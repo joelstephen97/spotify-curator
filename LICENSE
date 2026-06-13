@@ -1,0 +1,39 @@
+Spotify Curator — Proprietary License
+Copyright (c) 2026 Joel Stephen. All rights reserved.
+
+This source code is published publicly for portfolio and evaluation purposes
+only. It is NOT open source, and no rights are granted except those stated
+below.
+
+PERMITTED, WITHOUT CHARGE:
+  - Viewing and reading the source code.
+  - Running it locally, by yourself, solely to evaluate it (personal,
+    non-commercial assessment).
+
+NOT PERMITTED without a separate paid commercial license granted in writing
+by the copyright holder:
+  - Using this software, or any part of it, in any product, service, or
+    internal tool;
+  - Copying, reproducing, or republishing the source code or any substantial
+    portion of it;
+  - Modifying, adapting, translating, or creating derivative works;
+  - Distributing, sublicensing, selling, renting, lending, or hosting it for
+    or on behalf of any third party;
+  - Any commercial use whatsoever.
+
+To obtain a commercial license — required for any use beyond the personal
+evaluation described above — you must purchase one from the copyright holder.
+
+  Licensing contact: Joel Stephen <jojostev@gmail.com>
+
+Unauthorized use, copying, or distribution is a breach of this license and an
+infringement of copyright.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. THE COPYRIGHT HOLDER
+SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Third-party dependencies are licensed under their own respective terms.

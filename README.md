@@ -77,4 +77,8 @@ Run the tests with `pnpm test`. Build with `pnpm build`.
 
 ## License
 
-MIT
+**Proprietary — all rights reserved.** This code is public for portfolio and
+evaluation only. You may read it and run it locally to evaluate it, but any
+use, copying, modification, or distribution requires a **paid commercial
+license**. See [LICENSE](./LICENSE). To license it, contact Joel Stephen
+(jojostev@gmail.com).
