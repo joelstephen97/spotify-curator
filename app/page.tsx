@@ -730,9 +730,13 @@ const AUTH_ERRORS: Record<string, string> = {
 
 function Disconnected() {
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authDetail, setAuthDetail] = useState<string | null>(null);
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("auth_error");
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("auth_error");
     if (code) setAuthError(AUTH_ERRORS[code] ?? `Login failed (${code}).`);
+    const detail = params.get("auth_detail");
+    if (detail) setAuthDetail(detail);
   }, []);
 
   return (
@@ -740,6 +744,11 @@ function Disconnected() {
       {authError && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
           {authError}
+          {authDetail && (
+            <p className="mt-2 break-words text-left font-mono text-[11px] text-amber-800/80 dark:text-amber-200/70">
+              {authDetail}
+            </p>
+          )}
         </div>
       )}
       <p className="font-mono text-xs uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400/80">

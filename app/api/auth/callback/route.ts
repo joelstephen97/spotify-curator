@@ -17,8 +17,9 @@ export async function GET(req: NextRequest) {
   const home = new URL("/", appBaseUrl(req));
 
   // Always land the user back in the app — never dump a raw JSON/error page.
-  const fail = (reason: string) => {
+  const fail = (reason: string, detail?: string) => {
     home.searchParams.set("auth_error", reason);
+    if (detail) home.searchParams.set("auth_detail", detail.slice(0, 300));
     return NextResponse.redirect(home);
   };
 
@@ -60,9 +61,10 @@ export async function GET(req: NextRequest) {
     res.cookies.set("oauth_state", "", { path: "/", maxAge: 0 }); // clear
     return res;
   } catch (e) {
-    // Surface the real cause in the server logs (token error body, profile or
-    // store failure) — otherwise every failure looks identical.
+    // Surface the real cause — in the server logs AND back to the app UI —
+    // otherwise every failure looks identical.
+    const detail = e instanceof Error ? e.message : String(e);
     console.error("[auth/callback] login failed:", e);
-    return fail("exchange_failed");
+    return fail("exchange_failed", detail);
   }
 }
