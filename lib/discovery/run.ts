@@ -110,7 +110,15 @@ export async function runDiscoveryForUser(
         onStep: (step) =>
           writeStatus(userId, { state: "running", step, startedAt: now }),
       },
-      { targetCount: Number(process.env.DISCOVERY_TARGET_COUNT ?? "20") },
+      // Max out picks (defaults to the playlist cap). Over-requested 1.5× from
+      // Claude to survive seen/unresolvable filtering.
+      {
+        targetCount: Number(
+          process.env.DISCOVERY_TARGET_COUNT ??
+            process.env.DISCOVERY_PLAYLIST_CAP ??
+            "50",
+        ),
+      },
     );
 
     await writeStatus(userId, {

@@ -18,6 +18,8 @@ const SCOPES = [
   "playlist-modify-public",
   "user-read-private", // lets us read product (free/premium) to warn about the
   // Development-Mode owner-Premium requirement that blocks playlist writes
+  "user-modify-playback-state", // click-to-play a pick on the active device
+  "user-read-playback-state", // find the active/available device
 ].join(" ");
 
 export function spotifyConfig(): SpotifyConfig {

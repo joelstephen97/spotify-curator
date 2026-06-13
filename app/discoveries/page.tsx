@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-const trackId = (uri: string) => uri.split(":").pop();
+// A spotify: URI deep-links to the installed desktop/mobile app (not the web
+// player). p.uri is already "spotify:track:<id>".
+const openInApp = (uri: string) => {
+  window.location.href = uri;
+};
 
 interface Pick {
   artist: string;
@@ -30,27 +34,48 @@ const ERROR_COPY: Record<string, string> = {
 export default function DiscoveriesPage() {
   const [picks, setPicks] = useState<Pick[]>([]);
   const [status, setStatus] = useState<Status>({ state: "idle", step: "" });
-  const [playing, setPlaying] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [nowPlaying, setNowPlaying] = useState<string | null>(null);
+  const [playMsg, setPlayMsg] = useState<string | null>(null);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const togglePreview = useCallback(
-    (p: Pick) => {
-      const audio = audioRef.current;
-      if (!audio || !p.previewUrl) return;
-      if (playing === p.uri) {
-        audio.pause();
-        setPlaying(null);
+  // Click a pick → start it on the user's active Spotify device (replacing
+  // whatever's playing). Falls back to opening the app when there's no active
+  // device or playback is blocked.
+  const playPick = useCallback(async (p: Pick) => {
+    setPlayMsg(null);
+    setNowPlaying(p.uri);
+    try {
+      const res = await fetch("/api/play", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uri: p.uri }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok && body.ok) {
+        setPlayMsg(`▶ Playing “${p.title}” on your Spotify.`);
         return;
       }
-      audio.src = p.previewUrl;
-      audio.play().then(
-        () => setPlaying(p.uri),
-        () => setPlaying(null),
-      );
-    },
-    [playing],
-  );
+      setNowPlaying(null);
+      if (body.reason === "no_device") {
+        setPlayMsg(
+          "No active Spotify device — opening the app. Start playing once there, then clicks control it.",
+        );
+        openInApp(p.uri);
+      } else if (body.reason === "forbidden") {
+        setPlayMsg(
+          "Playback needs Spotify Premium + an active device (and may be blocked in Development Mode).",
+        );
+      } else if (body.error === "not_connected") {
+        setPlayMsg("Connect Spotify first (on the Stats tab).");
+      } else {
+        setPlayMsg("Couldn’t start playback — opening it in the app instead.");
+        openInApp(p.uri);
+      }
+    } catch {
+      setNowPlaying(null);
+      openInApp(p.uri);
+    }
+  }, []);
 
   const loadPicks = useCallback(async () => {
     try {
@@ -205,7 +230,7 @@ export default function DiscoveriesPage() {
                 <p className="mt-1 text-neutral-600 dark:text-neutral-400">
                   Auto-adding them to a Spotify playlist needs Extended Quota Mode
                   — Spotify blocks playlist writes for apps in Development Mode.
-                  For now, open or ▶ preview each pick below.
+                  For now, click any pick to play it on your Spotify.
                 </p>
               </div>
             )}
@@ -228,6 +253,12 @@ export default function DiscoveriesPage() {
         )}
       </AnimatePresence>
 
+      {playMsg && (
+        <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+          {playMsg}
+        </p>
+      )}
+
       {picks.length === 0 ? (
         !running && (
           <p className="text-neutral-600 dark:text-neutral-400">
@@ -244,9 +275,20 @@ export default function DiscoveriesPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.03, 0.3) }}
-              className="group flex gap-3 rounded-xl border border-black/10 p-3 transition-colors hover:border-emerald-500/40 dark:border-white/10"
+              onClick={() => playPick(p)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") playPick(p);
+              }}
+              role="button"
+              tabIndex={0}
+              title="Click to play on your Spotify"
+              className={`group flex cursor-pointer gap-3 rounded-xl border p-3 transition-colors focus:outline-none focus-visible:border-emerald-500/60 ${
+                nowPlaying === p.uri
+                  ? "border-emerald-500/50 bg-emerald-500/[0.06]"
+                  : "border-black/10 hover:border-emerald-500/40 hover:bg-black/[0.02] dark:border-white/10 dark:hover:bg-white/[0.03]"
+              }`}
             >
-              <Cover pick={p} playing={playing === p.uri} onToggle={() => togglePreview(p)} />
+              <Cover pick={p} active={nowPlaying === p.uri} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -255,37 +297,21 @@ export default function DiscoveriesPage() {
                     </div>
                     <div className="truncate text-sm text-neutral-500">{p.artist}</div>
                   </div>
-                  <a
-                    href={`https://open.spotify.com/track/${trackId(p.uri)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 rounded-full border border-emerald-500/40 px-3 py-1 text-xs font-medium text-emerald-700 opacity-0 transition-opacity group-hover:opacity-100 dark:text-emerald-300"
-                  >
-                    Open ↗
-                  </a>
+                  <span className="shrink-0 text-xs font-medium text-emerald-600 opacity-0 transition-opacity group-hover:opacity-100 dark:text-emerald-400">
+                    {nowPlaying === p.uri ? "Playing ♪" : "Play ▶"}
+                  </span>
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-sm text-neutral-500">{p.reason}</p>
+                <p className="mt-1.5 line-clamp-3 text-sm text-neutral-500">{p.reason}</p>
               </div>
             </motion.li>
           ))}
         </ul>
       )}
-
-      <audio ref={audioRef} onEnded={() => setPlaying(null)} hidden />
     </div>
   );
 }
 
-function Cover({
-  pick,
-  playing,
-  onToggle,
-}: {
-  pick: Pick;
-  playing: boolean;
-  onToggle: () => void;
-}) {
-  const hasPreview = Boolean(pick.previewUrl);
+function Cover({ pick, active }: { pick: Pick; active: boolean }) {
   return (
     <div className="relative h-14 w-14 shrink-0">
       {pick.image ? (
@@ -301,16 +327,13 @@ function Cover({
           {pick.title.charAt(0).toUpperCase()}
         </div>
       )}
-      {hasPreview && (
-        <button
-          onClick={onToggle}
-          aria-label={playing ? "Pause preview" : "Play 30s preview"}
-          className="absolute inset-0 grid place-items-center rounded-md bg-black/40 text-white opacity-0 transition-opacity hover:opacity-100"
-          style={playing ? { opacity: 1 } : undefined}
-        >
-          <span className="text-lg leading-none">{playing ? "❚❚" : "▶"}</span>
-        </button>
-      )}
+      {/* Play affordance on hover; steady indicator when this pick is playing. */}
+      <div
+        className="absolute inset-0 grid place-items-center rounded-md bg-black/45 text-white opacity-0 transition-opacity group-hover:opacity-100"
+        style={active ? { opacity: 1 } : undefined}
+      >
+        <span className="text-lg leading-none">{active ? "♪" : "▶"}</span>
+      </div>
     </div>
   );
 }
