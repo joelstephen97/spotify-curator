@@ -49,6 +49,8 @@ The `lib/` modules are pure and unit-tested with the external APIs mocked; the A
 
 ## Local setup
 
+> This project uses **pnpm** (pinned via `packageManager`). npm and yarn are blocked by a `preinstall` guard. If you don't have pnpm: `corepack enable` (ships with Node), or `npm i -g pnpm`.
+
 1. Create a Spotify app at the [developer dashboard](https://developer.spotify.com/dashboard) and add a redirect URI of `http://127.0.0.1:3000/api/auth/callback`.
 2. Create an [Upstash Redis](https://upstash.com) database (free tier is enough) and grab its REST URL and token.
 3. Get an [Anthropic API key](https://console.anthropic.com).
@@ -59,12 +61,12 @@ The `lib/` modules are pure and unit-tested with the external APIs mocked; the A
    `SESSION_SECRET` and `CRON_SECRET` can be any long random strings (e.g. `openssl rand -hex 32`).
 5. Install and run:
    ```bash
-   npm install
-   npm run dev
+   pnpm install
+   pnpm dev
    ```
 6. Open `http://127.0.0.1:3000`, click **Connect Spotify**, and you're in.
 
-Run the tests with `npm run test`.
+Run the tests with `pnpm test`. Build with `pnpm build`.
 
 ## Deploy on Vercel
 
