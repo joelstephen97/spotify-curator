@@ -59,7 +59,10 @@ export async function GET(req: NextRequest) {
     });
     res.cookies.set("oauth_state", "", { path: "/", maxAge: 0 }); // clear
     return res;
-  } catch {
+  } catch (e) {
+    // Surface the real cause in the server logs (token error body, profile or
+    // store failure) — otherwise every failure looks identical.
+    console.error("[auth/callback] login failed:", e);
     return fail("exchange_failed");
   }
 }

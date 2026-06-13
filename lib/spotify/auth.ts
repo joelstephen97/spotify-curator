@@ -61,7 +61,12 @@ async function tokenRequest(
     },
     body,
   });
-  if (!res.ok) throw new Error(`token request failed: ${res.status}`);
+  if (!res.ok) {
+    // Include Spotify's error body — it names the real problem, e.g.
+    // {"error":"invalid_grant","error_description":"Invalid redirect URI"}.
+    const body = await res.text().catch(() => "");
+    throw new Error(`token request failed: ${res.status} ${body}`);
+  }
   const j = await res.json();
   return {
     accessToken: j.access_token,
