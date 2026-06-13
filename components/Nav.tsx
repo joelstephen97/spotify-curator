@@ -6,6 +6,7 @@ import ThemeToggle from "./ThemeToggle";
 
 const LINKS = [
   { href: "/", label: "Stats" },
+  { href: "/wrapped", label: "Soundprint" },
   { href: "/curate", label: "Curate" },
   { href: "/discoveries", label: "Discoveries" },
 ];
@@ -19,7 +20,7 @@ export default function Nav() {
           href="/"
           className="font-display text-lg font-bold tracking-tight text-emerald-600 dark:text-emerald-400"
         >
-          ◗ Spotify Curator
+          ◗ Soundprint
         </Link>
         <div className="ml-auto flex items-center gap-1 text-sm">
           {LINKS.map((l) => {

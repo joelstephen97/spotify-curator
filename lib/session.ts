@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 export interface Session {
+  userId: string;
   accessToken: string;
   expiresAt: number;
 }

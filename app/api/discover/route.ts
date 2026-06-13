@@ -1,22 +1,27 @@
 import { NextResponse } from "next/server";
-import { clientFromRequest } from "@/lib/api-auth";
-import { runScheduledDiscovery } from "@/lib/discovery/run";
-import { defaultStore } from "@/lib/store/redis";
+import { authedUser } from "@/lib/api-auth";
+import { runDiscoveryForUser } from "@/lib/discovery/run";
+import { userStore } from "@/lib/store/redis";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
-// Latest AI picks (with reasons) for the discoveries view.
+// Latest AI picks (with reasons) for the connected user's discoveries view.
 export async function GET() {
-  return NextResponse.json({ picks: await defaultStore().getLatestPicks() });
+  const auth = await authedUser().catch(() => null);
+  if (!auth)
+    return NextResponse.json({ error: "not_connected" }, { status: 401 });
+  return NextResponse.json({
+    picks: await userStore(auth.userId).getLatestPicks(),
+  });
 }
 
-// Manual discovery trigger — requires a connected dashboard user.
+// Manual discovery trigger — runs for the connected user only.
 export async function POST() {
-  const client = await clientFromRequest();
-  if (!client)
+  const auth = await authedUser().catch(() => null);
+  if (!auth)
     return NextResponse.json({ error: "not_connected" }, { status: 401 });
-  const result = await runScheduledDiscovery();
+  const result = await runDiscoveryForUser(auth.userId);
   if (!result.ok)
     return NextResponse.json({ error: result.reason }, { status: 412 });
   return NextResponse.json({ added: result.added.length, picks: result.added });

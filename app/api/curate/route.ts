@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { clientFromRequest } from "@/lib/api-auth";
+import { authedUser } from "@/lib/api-auth";
 import { getSavedTracks } from "@/lib/spotify/data";
 import { getOrCreatePlaylist, addTracks } from "@/lib/spotify/playlist";
 
@@ -8,9 +8,10 @@ export const dynamic = "force-dynamic";
 // Body: { name: string }
 // v1 curation: build a new playlist from the user's saved (liked) tracks.
 export async function POST(req: NextRequest) {
-  const client = await clientFromRequest();
-  if (!client)
+  const auth = await authedUser();
+  if (!auth)
     return NextResponse.json({ error: "not_connected" }, { status: 401 });
+  const { client } = auth;
 
   const { name } = (await req.json()) as { name?: string };
   if (!name?.trim())

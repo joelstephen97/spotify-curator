@@ -5,20 +5,21 @@ const secret = "test-secret";
 
 describe("session", () => {
   it("seals and unseals a payload", () => {
-    const sealed = sealSession({ accessToken: "at", expiresAt: 123 }, secret);
+    const sealed = sealSession({ userId: "u1", accessToken: "at", expiresAt: 123 }, secret);
     expect(unsealSession(sealed, secret)).toEqual({
+      userId: "u1",
       accessToken: "at",
       expiresAt: 123,
     });
   });
 
   it("rejects a tampered payload", () => {
-    const sealed = sealSession({ accessToken: "at", expiresAt: 123 }, secret);
+    const sealed = sealSession({ userId: "u1", accessToken: "at", expiresAt: 123 }, secret);
     expect(unsealSession(sealed + "x", secret)).toBeNull();
   });
 
   it("rejects a value with the wrong secret", () => {
-    const sealed = sealSession({ accessToken: "at", expiresAt: 123 }, secret);
+    const sealed = sealSession({ userId: "u1", accessToken: "at", expiresAt: 123 }, secret);
     expect(unsealSession(sealed, "other-secret")).toBeNull();
   });
 

@@ -22,9 +22,9 @@ import Nav from "@/components/Nav";
 import ThemeProvider from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "Spotify Curator",
+  title: "Soundprint — your year in sound",
   description:
-    "AI-powered Spotify stats, library curation, and weekly auto-discovery.",
+    "A downloadable poster of your listening: top artists, genres, minutes, and a weekly AI discovery playlist. Built on the Spotify API.",
 };
 
 export default function RootLayout({
@@ -43,6 +43,8 @@ export default function RootLayout({
           {/* Atmospheric backdrop, Tailwind-only: a soft emerald wash that adapts
               to the active theme. */}
           <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(60%_50%_at_15%_0%,rgba(16,185,129,0.10),transparent_70%),radial-gradient(55%_45%_at_100%_5%,rgba(16,185,129,0.06),transparent_70%)] dark:bg-[radial-gradient(60%_50%_at_15%_0%,rgba(16,185,129,0.18),transparent_70%),radial-gradient(55%_45%_at_100%_5%,rgba(52,211,153,0.10),transparent_70%),radial-gradient(80%_60%_at_50%_115%,rgba(5,46,33,0.5),transparent_70%)]" />
+          {/* Film-grain overlay for depth — Tailwind-only via an inline SVG noise. */}
+          <div className="pointer-events-none fixed inset-0 -z-10 opacity-[0.035] mix-blend-soft-light dark:opacity-[0.06] bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22120%22 height=%22120%22><filter id=%22n%22><feTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%222%22 stitchTiles=%22stitch%22/></filter><rect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/></svg>')]" />
           <Nav />
           <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10">
             {children}

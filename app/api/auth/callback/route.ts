@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeCode, spotifyConfig } from "@/lib/spotify/auth";
 import { sealSession } from "@/lib/session";
-import { defaultStore } from "@/lib/store/redis";
+import { SpotifyClient } from "@/lib/spotify/client";
+import { getProfile } from "@/lib/spotify/data";
+import { userStore, registry } from "@/lib/store/redis";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +29,17 @@ export async function GET(req: NextRequest) {
     if (!code || !state || state !== cookieState) return fail("state_mismatch");
 
     const tokens = await exchangeCode(spotifyConfig(), code);
-    if (tokens.refreshToken)
-      await defaultStore().setRefreshToken(tokens.refreshToken);
+
+    // Identify the user so all their data is namespaced and the weekly bot can
+    // find them later.
+    const profile = await getProfile(new SpotifyClient(tokens.accessToken));
+    const store = userStore(profile.id);
+    if (tokens.refreshToken) await store.setRefreshToken(tokens.refreshToken);
+    await registry().addUser(profile.id);
 
     const session = sealSession(
       {
+        userId: profile.id,
         accessToken: tokens.accessToken,
         expiresAt: Date.now() + tokens.expiresIn * 1000,
       },

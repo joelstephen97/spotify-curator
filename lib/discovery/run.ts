@@ -9,19 +9,21 @@ import { resolveTrack } from "@/lib/spotify/search";
 import { getOrCreatePlaylist, addTracks, trimToCap } from "@/lib/spotify/playlist";
 import { recommend, defaultAnthropic } from "@/lib/discovery/recommend";
 import { runDiscovery } from "@/lib/discovery/pipeline";
-import { defaultStore } from "@/lib/store/redis";
+import { userStore, registry } from "@/lib/store/redis";
 
 export type DiscoveryRunResult =
   | { ok: true; added: { artist: string; title: string; reason: string; uri: string }[] }
   | { ok: false; reason: "not_connected" };
 
 /**
- * Headless weekly discovery: refresh the stored token, gather taste signals,
- * ask Claude for new tracks, resolve and add them to the bot-owned playlist,
- * then trim to the cap. Shared by the cron route and the manual trigger.
+ * Headless weekly discovery for ONE user: refresh their token, gather taste
+ * signals, ask Claude for new tracks, resolve and add them to that user's
+ * bot-owned playlist, then trim to the cap. All state is namespaced per user.
  */
-export async function runScheduledDiscovery(): Promise<DiscoveryRunResult> {
-  const store = defaultStore();
+export async function runDiscoveryForUser(
+  userId: string,
+): Promise<DiscoveryRunResult> {
+  const store = userStore(userId);
   const refresh = await store.getRefreshToken();
   if (!refresh) return { ok: false, reason: "not_connected" };
 
@@ -60,4 +62,36 @@ export async function runScheduledDiscovery(): Promise<DiscoveryRunResult> {
     Number(process.env.DISCOVERY_PLAYLIST_CAP ?? "50"),
   );
   return { ok: true, added: result.added };
+}
+
+export interface UserRunSummary {
+  userId: string;
+  added: number;
+  error?: string;
+}
+
+/**
+ * Fan the weekly job out across every connected user. One user's failure
+ * (revoked token, rate limit) is logged and skipped — it never aborts the run.
+ */
+export async function runAllUsers(): Promise<UserRunSummary[]> {
+  const users = await registry().listUsers();
+  const summaries: UserRunSummary[] = [];
+  for (const userId of users) {
+    try {
+      const r = await runDiscoveryForUser(userId);
+      summaries.push({
+        userId,
+        added: r.ok ? r.added.length : 0,
+        error: r.ok ? undefined : r.reason,
+      });
+    } catch (e) {
+      summaries.push({
+        userId,
+        added: 0,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+  return summaries;
 }

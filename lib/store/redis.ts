@@ -1,10 +1,12 @@
 import { Redis } from "@upstash/redis";
+import type { PlayEvent } from "@/lib/spotify/data";
 
 export interface KV {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<unknown>;
   sadd(key: string, ...members: string[]): Promise<number>;
   sismember(key: string, member: string): Promise<number>;
+  smembers(key: string): Promise<string[]>;
 }
 
 export interface Pick {
@@ -14,22 +16,29 @@ export interface Pick {
   uri: string;
 }
 
-const K = {
-  refresh: "spotify:refresh_token",
-  seen: "discovery:seen",
-  picks: "discovery:latest_picks",
-};
+// All listening data is namespaced per Spotify user id so multiple connected
+// accounts never collide. The user registry is the one global key.
+const USERS = "users:all";
+const keys = (uid: string) => ({
+  refresh: `spotify:refresh_token:${uid}`,
+  seen: `discovery:seen:${uid}`,
+  picks: `discovery:latest_picks:${uid}`,
+  history: `history:plays:${uid}`,
+  importAgg: `import:aggregate:${uid}`,
+});
 
-export function createStore(kv: KV) {
+export function createStore(kv: KV, userId: string) {
+  const K = keys(userId);
   return {
+    userId,
     async setRefreshToken(t: string) {
       await kv.set(K.refresh, t);
     },
     async getRefreshToken() {
       return kv.get(K.refresh);
     },
-    async markSeen(keys: string[]) {
-      if (keys.length) await kv.sadd(K.seen, ...keys);
+    async markSeen(seenKeys: string[]) {
+      if (seenKeys.length) await kv.sadd(K.seen, ...seenKeys);
     },
     async isSeen(key: string) {
       return (await kv.sismember(K.seen, key)) === 1;
@@ -41,15 +50,47 @@ export function createStore(kv: KV) {
       const raw = await kv.get(K.picks);
       return raw ? JSON.parse(raw) : [];
     },
+    async getPlayHistory(): Promise<PlayEvent[]> {
+      const raw = await kv.get(K.history);
+      return raw ? JSON.parse(raw) : [];
+    },
+    async setPlayHistory(events: PlayEvent[]) {
+      await kv.set(K.history, JSON.stringify(events));
+    },
+    async getImportAggregate(): Promise<string | null> {
+      return kv.get(K.importAgg);
+    },
+    async setImportAggregate(json: string) {
+      await kv.set(K.importAgg, json);
+    },
   };
 }
 
 export type Store = ReturnType<typeof createStore>;
 
-export function defaultStore(): Store {
-  const redis = new Redis({
+/** The global registry of connected users — drives the weekly cron fan-out. */
+export function createRegistry(kv: KV) {
+  return {
+    async addUser(userId: string) {
+      await kv.sadd(USERS, userId);
+    },
+    async listUsers(): Promise<string[]> {
+      return kv.smembers(USERS);
+    },
+  };
+}
+export type Registry = ReturnType<typeof createRegistry>;
+
+function redis(): KV {
+  return new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL!,
     token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-  });
-  return createStore(redis as unknown as KV);
+  }) as unknown as KV;
+}
+
+export function userStore(userId: string): Store {
+  return createStore(redis(), userId);
+}
+export function registry(): Registry {
+  return createRegistry(redis());
 }
