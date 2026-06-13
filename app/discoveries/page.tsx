@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
+const trackId = (uri: string) => uri.split(":").pop();
+
 interface Pick {
   artist: string;
   title: string;
   reason: string;
   uri: string;
+  image?: string | null;
+  previewUrl?: string | null;
 }
 interface Status {
   state: "idle" | "running" | "done" | "error";
@@ -18,12 +22,34 @@ interface Status {
 
 const ERROR_COPY: Record<string, string> = {
   not_connected: "Connect Spotify first (on the Stats tab).",
+  spotify_write_forbidden:
+    "Spotify blocked playlist changes (403). Your app is in Development Mode — add your Spotify account under Settings → User Management in the Spotify Developer Dashboard (or request Extended Quota Mode), then reconnect.",
 };
 
 export default function DiscoveriesPage() {
   const [picks, setPicks] = useState<Pick[]>([]);
   const [status, setStatus] = useState<Status>({ state: "idle", step: "" });
+  const [playing, setPlaying] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const togglePreview = useCallback(
+    (p: Pick) => {
+      const audio = audioRef.current;
+      if (!audio || !p.previewUrl) return;
+      if (playing === p.uri) {
+        audio.pause();
+        setPlaying(null);
+        return;
+      }
+      audio.src = p.previewUrl;
+      audio.play().then(
+        () => setPlaying(p.uri),
+        () => setPlaying(null),
+      );
+    },
+    [playing],
+  );
 
   const loadPicks = useCallback(async () => {
     try {
@@ -203,28 +229,72 @@ export default function DiscoveriesPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.03, 0.3) }}
-              className="group rounded-xl border border-black/10 p-4 transition-colors hover:border-emerald-500/40 dark:border-white/10"
+              className="group flex gap-3 rounded-xl border border-black/10 p-3 transition-colors hover:border-emerald-500/40 dark:border-white/10"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate font-medium text-neutral-900 dark:text-neutral-100">
-                    {p.title}
+              <Cover pick={p} playing={playing === p.uri} onToggle={() => togglePreview(p)} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium text-neutral-900 dark:text-neutral-100">
+                      {p.title}
+                    </div>
+                    <div className="truncate text-sm text-neutral-500">{p.artist}</div>
                   </div>
-                  <div className="truncate text-sm text-neutral-500">{p.artist}</div>
+                  <a
+                    href={`https://open.spotify.com/track/${trackId(p.uri)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 rounded-full border border-emerald-500/40 px-3 py-1 text-xs font-medium text-emerald-700 opacity-0 transition-opacity group-hover:opacity-100 dark:text-emerald-300"
+                  >
+                    Open ↗
+                  </a>
                 </div>
-                <a
-                  href={`https://open.spotify.com/track/${p.uri.split(":").pop()}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="shrink-0 rounded-full border border-emerald-500/40 px-3 py-1 text-xs font-medium text-emerald-700 opacity-0 transition-opacity group-hover:opacity-100 dark:text-emerald-300"
-                >
-                  Open ↗
-                </a>
+                <p className="mt-1.5 line-clamp-2 text-sm text-neutral-500">{p.reason}</p>
               </div>
-              <p className="mt-2 text-sm text-neutral-500">{p.reason}</p>
             </motion.li>
           ))}
         </ul>
+      )}
+
+      <audio ref={audioRef} onEnded={() => setPlaying(null)} hidden />
+    </div>
+  );
+}
+
+function Cover({
+  pick,
+  playing,
+  onToggle,
+}: {
+  pick: Pick;
+  playing: boolean;
+  onToggle: () => void;
+}) {
+  const hasPreview = Boolean(pick.previewUrl);
+  return (
+    <div className="relative h-14 w-14 shrink-0">
+      {pick.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={pick.image}
+          alt=""
+          loading="lazy"
+          className="h-14 w-14 rounded-md object-cover"
+        />
+      ) : (
+        <div className="grid h-14 w-14 place-items-center rounded-md bg-black/5 text-sm font-bold text-neutral-400 dark:bg-white/10">
+          {pick.title.charAt(0).toUpperCase()}
+        </div>
+      )}
+      {hasPreview && (
+        <button
+          onClick={onToggle}
+          aria-label={playing ? "Pause preview" : "Play 30s preview"}
+          className="absolute inset-0 grid place-items-center rounded-md bg-black/40 text-white opacity-0 transition-opacity hover:opacity-100"
+          style={playing ? { opacity: 1 } : undefined}
+        >
+          <span className="text-lg leading-none">{playing ? "❚❚" : "▶"}</span>
+        </button>
       )}
     </div>
   );

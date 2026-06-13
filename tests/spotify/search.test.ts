@@ -10,18 +10,36 @@ function clientReturning(payload: unknown) {
 }
 
 describe("resolveTrack", () => {
-  it("returns the most popular matching track uri", async () => {
+  it("returns the most popular match with its art and preview", async () => {
     const c = clientReturning({
       tracks: {
         items: [
-          { uri: "spotify:track:low", popularity: 10, name: "X", artists: [{ name: "A" }] },
-          { uri: "spotify:track:high", popularity: 90, name: "X", artists: [{ name: "A" }] },
+          { uri: "spotify:track:low", popularity: 10 },
+          {
+            uri: "spotify:track:high",
+            popularity: 90,
+            preview_url: "https://p.scdn.co/mp3-preview/abc",
+            album: { images: [{ url: "https://img/cover.jpg" }] },
+          },
         ],
       },
     });
-    expect(await resolveTrack(c, { artist: "A", title: "X" })).toBe(
-      "spotify:track:high",
-    );
+    expect(await resolveTrack(c, { artist: "A", title: "X" })).toEqual({
+      uri: "spotify:track:high",
+      image: "https://img/cover.jpg",
+      previewUrl: "https://p.scdn.co/mp3-preview/abc",
+    });
+  });
+
+  it("handles a missing preview (Spotify deprecation) gracefully", async () => {
+    const c = clientReturning({
+      tracks: { items: [{ uri: "spotify:track:x", popularity: 50 }] },
+    });
+    expect(await resolveTrack(c, { artist: "A", title: "X" })).toEqual({
+      uri: "spotify:track:x",
+      image: null,
+      previewUrl: null,
+    });
   });
 
   it("returns null when nothing is found", async () => {

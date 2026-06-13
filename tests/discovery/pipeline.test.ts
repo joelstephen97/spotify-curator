@@ -15,9 +15,10 @@ describe("runDiscovery", () => {
         { artist: "Radiohead", title: "Creep", reason: "seen-artist" },
         { artist: "Ghost", title: "Nowhere", reason: "unresolvable" },
       ]),
-      resolve: vi.fn(
-        async (s: Suggestion) =>
-          s.artist === "Ghost" ? null : `spotify:track:${s.title}`,
+      resolve: vi.fn(async (s: Suggestion) =>
+        s.artist === "Ghost"
+          ? null
+          : { uri: `spotify:track:${s.title}`, image: "https://img/x.jpg", previewUrl: null },
       ),
       isSeen: vi.fn(async (key: string) => key.includes("radiohead")),
       addTracks: vi.fn(),
@@ -27,7 +28,14 @@ describe("runDiscovery", () => {
     const result = await runDiscovery(deps, { targetCount: 3 });
     expect(deps.addTracks).toHaveBeenCalledWith(["spotify:track:Roads"]);
     expect(result.added).toEqual([
-      { artist: "Portishead", title: "Roads", reason: "r1", uri: "spotify:track:Roads" },
+      {
+        artist: "Portishead",
+        title: "Roads",
+        reason: "r1",
+        uri: "spotify:track:Roads",
+        image: "https://img/x.jpg",
+        previewUrl: null,
+      },
     ]);
     expect(deps.markSeen).toHaveBeenCalled();
     expect(deps.setLatestPicks).toHaveBeenCalledWith(result.added);

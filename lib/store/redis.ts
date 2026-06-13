@@ -14,6 +14,8 @@ export interface Pick {
   title: string;
   reason: string;
   uri: string;
+  image?: string | null;
+  previewUrl?: string | null;
 }
 
 // All listening data is namespaced per Spotify user id so multiple connected

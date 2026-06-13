@@ -118,12 +118,16 @@ export async function runDiscoveryForUser(
     });
     return { ok: true, added: result.added };
   } catch (e) {
+    const raw = e instanceof Error ? e.message : String(e);
+    // A 403 on a write means Spotify's Development-Mode allowlist is blocking
+    // this account — give the user the actual fix, not a raw status code.
+    const error = /failed: 403/.test(raw) ? "spotify_write_forbidden" : raw;
     await writeStatus(userId, {
       state: "error",
       step: "",
       startedAt: now,
       finishedAt: Date.now(),
-      error: e instanceof Error ? e.message : String(e),
+      error,
     });
     throw e;
   }

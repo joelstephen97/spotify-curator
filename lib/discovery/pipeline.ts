@@ -1,6 +1,7 @@
 import type { Signals } from "./profile";
 import { buildProfile, seenKeys } from "./profile";
 import type { Suggestion } from "./recommend";
+import type { ResolvedTrack } from "@/lib/spotify/search";
 
 export interface PipelineDeps {
   getSignals: () => Promise<Signals>;
@@ -8,12 +9,19 @@ export interface PipelineDeps {
     profile: ReturnType<typeof buildProfile>,
     count: number,
   ) => Promise<Suggestion[]>;
-  resolve: (s: Suggestion) => Promise<string | null>;
+  resolve: (s: Suggestion) => Promise<ResolvedTrack | null>;
   isSeen: (key: string) => Promise<boolean>;
   addTracks: (uris: string[]) => Promise<void>;
   markSeen: (keys: string[]) => Promise<void>;
   setLatestPicks: (
-    picks: { artist: string; title: string; reason: string; uri: string }[],
+    picks: {
+      artist: string;
+      title: string;
+      reason: string;
+      uri: string;
+      image: string | null;
+      previewUrl: string | null;
+    }[],
   ) => Promise<void>;
   onStep?: (msg: string) => void | Promise<void>;
 }
@@ -40,6 +48,8 @@ export async function runDiscovery(
     title: string;
     reason: string;
     uri: string;
+    image: string | null;
+    previewUrl: string | null;
   }[] = [];
   for (const s of suggestions) {
     if (added.length >= opts.targetCount) break;
@@ -51,15 +61,20 @@ export async function runDiscovery(
     )
       continue;
     // A single failed search must never abort the whole run.
-    let uri: string | null = null;
+    let resolved: ResolvedTrack | null = null;
     try {
-      uri = await deps.resolve(s);
+      resolved = await deps.resolve(s);
     } catch {
-      uri = null;
+      resolved = null;
     }
-    if (!uri) continue;
-    if (added.some((a) => a.uri === uri)) continue;
-    added.push({ ...s, uri });
+    if (!resolved) continue;
+    if (added.some((a) => a.uri === resolved.uri)) continue;
+    added.push({
+      ...s,
+      uri: resolved.uri,
+      image: resolved.image,
+      previewUrl: resolved.previewUrl,
+    });
   }
 
   await deps.onStep?.(`Adding ${added.length} new tracks to your playlist…`);
