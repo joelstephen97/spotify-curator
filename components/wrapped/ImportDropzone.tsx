@@ -3,6 +3,11 @@
 import { useCallback, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { commas } from "@/lib/format";
+import {
+  parseStreamingHistory,
+  aggregateImport,
+  collectRows,
+} from "@/lib/import";
 
 type State =
   | { kind: "idle" }
@@ -30,17 +35,30 @@ export default function ImportDropzone({ onDone }: { onDone?: () => void }) {
       if (!files || !files.length) return;
       setState({ kind: "reading" });
       try {
+        // Parse + aggregate entirely in the browser. Exports can be tens of MB;
+        // we only ever send the tiny summary to the server (and the raw rows
+        // never leave the device).
         const parsed: unknown[] = [];
         for (const file of Array.from(files)) {
           const text = await file.text();
-          const json = JSON.parse(text);
-          parsed.push(json); // array-of-arrays; server flattens
+          parsed.push(JSON.parse(text));
         }
+        const plays = parseStreamingHistory(collectRows(parsed));
+        if (!plays.length) {
+          setState({
+            kind: "error",
+            message:
+              "No music streams found. Upload the Streaming_History_Audio_*.json files from your export.",
+          });
+          return;
+        }
+        const aggregate = aggregateImport(plays);
+
         setState({ kind: "uploading" });
         const res = await fetch("/api/import", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(parsed),
+          body: JSON.stringify({ aggregate }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -51,7 +69,17 @@ export default function ImportDropzone({ onDone }: { onDone?: () => void }) {
           });
           return;
         }
-        setState({ kind: "done", summary: body.summary });
+        setState({
+          kind: "done",
+          summary: {
+            totalMinutes: aggregate.totalMinutes,
+            totalHours: aggregate.totalHours,
+            totalPlays: aggregate.totalPlays,
+            topArtist: aggregate.topArtists[0]?.artist ?? null,
+            since: aggregate.since,
+            until: aggregate.until,
+          },
+        });
         onDone?.();
       } catch (e) {
         setState({

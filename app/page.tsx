@@ -234,35 +234,40 @@ export default function StatsPage() {
           </span>
         </h1>
 
-        <div className="flex flex-wrap items-center gap-2 pt-2">
-          {TABS.map((t) => {
-            const active = t.key === range;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setRange(t.key)}
-                className={`group rounded-full border px-4 py-2 text-left transition-colors ${
-                  active
-                    ? "border-emerald-500/40 bg-emerald-500/10"
-                    : "border-black/10 hover:border-black/25 dark:border-white/10 dark:hover:border-white/25"
-                }`}
-              >
-                <span
-                  className={`block text-sm font-semibold ${
-                    active
-                      ? "text-emerald-700 dark:text-emerald-300"
-                      : "text-neutral-700 dark:text-neutral-200"
-                  }`}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 pt-2">
+          <div className="inline-flex rounded-full border border-black/10 bg-black/[0.04] p-1 dark:border-white/10 dark:bg-white/[0.05]">
+            {TABS.map((t) => {
+              const active = t.key === range;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setRange(t.key)}
+                  className="relative rounded-full px-4 py-1.5 text-sm font-semibold transition-colors"
                 >
-                  {t.label}
-                </span>
-                <span className="block text-[11px] text-neutral-500">{t.sub}</span>
-              </button>
-            );
-          })}
+                  {active && (
+                    <motion.span
+                      layoutId="rangePill"
+                      className="absolute inset-0 rounded-full bg-emerald-500"
+                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                    />
+                  )}
+                  <span
+                    className={`relative z-10 transition-colors ${
+                      active
+                        ? "text-neutral-950"
+                        : "text-neutral-600 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                    }`}
+                  >
+                    {t.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-sm text-neutral-500">{activeTab.sub}</p>
           <Link
             href="/wrapped"
-            className="ml-auto rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 transition-colors hover:bg-emerald-400"
+            className="w-full rounded-full bg-emerald-500 px-5 py-2.5 text-center text-sm font-semibold text-neutral-950 transition-colors hover:bg-emerald-400 sm:ml-auto sm:w-auto"
           >
             ✦ Create your Soundprint
           </Link>
@@ -475,6 +480,13 @@ function Report({
       {/* Your whole library */}
       <Rise className="rounded-3xl border border-black/10 p-7 dark:border-white/10">
         <SectionLabel>Your saved library</SectionLabel>
+        {library && (
+          <p className="-mt-2 mb-4 text-xs text-neutral-500">
+            {library.isEstimate
+              ? `Sampled ${library.savedFetched.toLocaleString()} of ${library.savedTotal.toLocaleString()} saved songs.`
+              : `All ${library.savedTotal.toLocaleString()} of your saved songs, scanned in full.`}
+          </p>
+        )}
         {library ? (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -12,12 +12,18 @@ const H = 1350;
 // Pull a bold TTF for the display type. Satori can't read woff2, so we ask
 // Google's CSS for the truetype source. If anything fails we fall back to the
 // built-in font — the layout still reads well.
-async function loadFont(family: string, weight: number): Promise<ArrayBuffer | null> {
+async function loadFont(family: string, weight?: number): Promise<ArrayBuffer | null> {
   try {
-    const css = await fetch(
-      `https://fonts.googleapis.com/css2?family=${family}:wght@${weight}`,
-      { headers: { "User-Agent": "Mozilla/4.0" } },
-    ).then((r) => r.text());
+    const spec = weight ? `${family}:wght@${weight}` : family;
+    // An old User-Agent makes Google serve a TrueType src (Satori can't read
+    // woff2). We grab the first truetype/opentype url and fall back to the
+    // built-in font if anything goes wrong.
+    const css = await fetch(`https://fonts.googleapis.com/css2?family=${spec}`, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_5_8; en-US) AppleWebKit/534.30",
+      },
+    }).then((r) => r.text());
     const url = css.match(
       /src:\s*url\((https:\/\/[^)]+)\)\s*format\('(?:truetype|opentype)'\)/,
     )?.[1];
@@ -30,6 +36,8 @@ async function loadFont(family: string, weight: number): Promise<ArrayBuffer | n
 
 function poster(card: WrappedCard) {
   const accent = "#34d399";
+  const sentence = `${card.topGenre ? `Mostly ${card.topGenre}. ` : "Genre nomad. "}${card.personality.tagline}`;
+  const tagline = sentence.length > 110 ? sentence.slice(0, 109) + "…" : sentence;
   return (
     <div
       style={{
@@ -60,13 +68,13 @@ function poster(card: WrappedCard) {
         <span style={{ color: "#9fe9cc" }}>Year in sound</span>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", marginTop: 56 }}>
+      <div style={{ display: "flex", flexDirection: "column", marginTop: 44 }}>
         <span style={{ fontSize: 34, color: "#bdeedd" }}>
           {card.displayName}
         </span>
         <span
           style={{
-            fontSize: 230,
+            fontSize: 200,
             lineHeight: 1,
             fontWeight: 800,
             letterSpacing: -6,
@@ -76,13 +84,13 @@ function poster(card: WrappedCard) {
         >
           {commas(card.minutes.value)}
         </span>
-        <span style={{ fontSize: 40, color: "#dffaef", marginTop: 6 }}>
+        <span style={{ fontSize: 38, color: "#dffaef", marginTop: 6 }}>
           {card.minutes.estimated ? "≈ " : ""}
           {card.minutes.label}
         </span>
       </div>
 
-      <div style={{ display: "flex", gap: 28, marginTop: 64 }}>
+      <div style={{ display: "flex", gap: 28, marginTop: 48 }}>
         <PosterTile
           kicker="Top artist"
           image={card.topArtist.image}
@@ -105,15 +113,14 @@ function poster(card: WrappedCard) {
         <span style={{ fontSize: 30, color: accent, letterSpacing: 2 }}>
           {card.personality.title.toUpperCase()}
         </span>
-        <span style={{ fontSize: 34, color: "#eafff7", marginTop: 8 }}>
-          {card.topGenre ? `Mostly ${card.topGenre}.` : "Genre nomad."}{" "}
-          {card.personality.tagline}
+        <span style={{ fontSize: 30, color: "#eafff7", marginTop: 8 }}>
+          {tagline}
         </span>
         <span
           style={{
             fontSize: 22,
             color: "#6fb39a",
-            marginTop: 36,
+            marginTop: 28,
           }}
         >
           Not affiliated with Spotify · Data via the Spotify API
@@ -211,16 +218,18 @@ export async function GET() {
   }
   if (!auth) return new Response("not_connected", { status: 401 });
 
+  // Archivo Black is a single-weight static TTF — Google reliably serves it as
+  // truetype, unlike variable fonts that only come as woff2.
   const [card, font] = await Promise.all([
     buildWrapped(auth.client, userStore(auth.userId)),
-    loadFont("Bricolage+Grotesque", 800),
+    loadFont("Archivo+Black"),
   ]);
 
   return new ImageResponse(poster(card), {
     width: W,
     height: H,
     fonts: font
-      ? [{ name: "Display", data: font, weight: 800, style: "normal" }]
+      ? [{ name: "Display", data: font, weight: 400, style: "normal" }]
       : undefined,
     headers: {
       "Content-Disposition": 'inline; filename="soundprint.png"',

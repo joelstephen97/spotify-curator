@@ -31,8 +31,12 @@ export async function addTracks(
   playlistId: string,
   uris: string[],
 ): Promise<void> {
-  if (!uris.length) return;
-  await c.post(`/playlists/${playlistId}/tracks`, { uris });
+  // Spotify accepts at most 100 URIs per request — chunk so large playlists
+  // (e.g. a full liked-songs export) don't get silently rejected.
+  for (let i = 0; i < uris.length; i += 100) {
+    const chunk = uris.slice(i, i + 100);
+    if (chunk.length) await c.post(`/playlists/${playlistId}/tracks`, { uris: chunk });
+  }
 }
 
 export async function getPlaylistTrackUris(

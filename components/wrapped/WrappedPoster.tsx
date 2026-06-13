@@ -50,7 +50,7 @@ export default function WrappedPoster({ card }: { card: WrappedCard }) {
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="relative mx-auto flex aspect-[4/5] w-full max-w-md flex-col overflow-hidden rounded-3xl p-7 text-emerald-50 shadow-2xl"
+      className="relative mx-auto flex min-h-[36rem] w-full max-w-md flex-col overflow-hidden rounded-3xl p-7 text-emerald-50 shadow-2xl"
       style={{
         backgroundColor: "#04140d",
         backgroundImage:

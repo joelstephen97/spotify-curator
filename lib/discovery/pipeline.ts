@@ -15,19 +15,26 @@ export interface PipelineDeps {
   setLatestPicks: (
     picks: { artist: string; title: string; reason: string; uri: string }[],
   ) => Promise<void>;
+  onStep?: (msg: string) => void | Promise<void>;
 }
 
 export async function runDiscovery(
   deps: PipelineDeps,
   opts: { targetCount: number },
 ) {
+  await deps.onStep?.("Reading your taste profile…");
   const signals = await deps.getSignals();
   const profile = buildProfile(signals);
+
+  await deps.onStep?.("Asking Claude for fresh tracks…");
   const suggestions = await deps.recommend(
     profile,
     Math.ceil(opts.targetCount * 1.5),
   );
 
+  await deps.onStep?.(
+    `Got ${suggestions.length} ideas — finding them on Spotify…`,
+  );
   const added: {
     artist: string;
     title: string;
@@ -43,11 +50,19 @@ export async function runDiscovery(
       )
     )
       continue;
-    const uri = await deps.resolve(s);
+    // A single failed search must never abort the whole run.
+    let uri: string | null = null;
+    try {
+      uri = await deps.resolve(s);
+    } catch {
+      uri = null;
+    }
     if (!uri) continue;
     if (added.some((a) => a.uri === uri)) continue;
     added.push({ ...s, uri });
   }
+
+  await deps.onStep?.(`Adding ${added.length} new tracks to your playlist…`);
 
   await deps.addTracks(added.map((a) => a.uri));
   await deps.markSeen([

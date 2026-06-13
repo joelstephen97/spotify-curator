@@ -25,6 +25,7 @@ const keys = (uid: string) => ({
   picks: `discovery:latest_picks:${uid}`,
   history: `history:plays:${uid}`,
   importAgg: `import:aggregate:${uid}`,
+  status: `discovery:status:${uid}`,
 });
 
 export function createStore(kv: KV, userId: string) {
@@ -63,6 +64,12 @@ export function createStore(kv: KV, userId: string) {
     async setImportAggregate(json: string) {
       await kv.set(K.importAgg, json);
     },
+    async getDiscoveryStatus(): Promise<string | null> {
+      return kv.get(K.status);
+    },
+    async setDiscoveryStatus(json: string) {
+      await kv.set(K.status, json);
+    },
   };
 }
 
@@ -85,6 +92,10 @@ function redis(): KV {
   return new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL!,
     token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    // We store JSON strings and parse them ourselves. Without this, the client
+    // auto-JSON-parses on read, so our JSON.parse would double-parse and throw —
+    // silently breaking history, imports, picks and discovery status.
+    automaticDeserialization: false,
   }) as unknown as KV;
 }
 

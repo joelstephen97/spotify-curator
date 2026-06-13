@@ -25,7 +25,7 @@ export async function GET() {
   }
 
   try {
-    const { tracks, total } = await getAllSavedTracks(client, 1000);
+    const { tracks, total } = await getAllSavedTracks(client);
     const fetchedMinutes = totalMinutes(tracks);
     const avgMs = averageTrackLengthMs(tracks);
     // If the library exceeds the fetch cap, extrapolate from the sample.

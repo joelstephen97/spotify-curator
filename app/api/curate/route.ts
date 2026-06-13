@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authedUser } from "@/lib/api-auth";
-import { getSavedTracks } from "@/lib/spotify/data";
+import { getAllSavedTracks } from "@/lib/spotify/data";
 import { getOrCreatePlaylist, addTracks } from "@/lib/spotify/playlist";
 
 export const dynamic = "force-dynamic";
@@ -17,12 +17,12 @@ export async function POST(req: NextRequest) {
   if (!name?.trim())
     return NextResponse.json({ error: "name_required" }, { status: 400 });
 
-  const saved = await getSavedTracks(client, 50);
+  const { tracks } = await getAllSavedTracks(client);
   const playlistId = await getOrCreatePlaylist(client, name.trim());
   await addTracks(
     client,
     playlistId,
-    saved.map((t) => `spotify:track:${t.id}`),
+    tracks.map((t) => `spotify:track:${t.id}`),
   );
-  return NextResponse.json({ playlistId, added: saved.length });
+  return NextResponse.json({ playlistId, added: tracks.length });
 }

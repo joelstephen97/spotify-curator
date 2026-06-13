@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authedUser } from "@/lib/api-auth";
-import { parseStreamingHistory, aggregateImport, collectRows } from "@/lib/import";
+import type { ImportAggregate } from "@/lib/import";
 import { userStore } from "@/lib/store/redis";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
 
-// Accept the user's Spotify "Extended streaming history" JSON, aggregate it
-// into real lifetime stats, and persist the summary (not the raw rows).
+// The browser parses the (large) streaming-history files and computes the
+// aggregate locally; we only receive and persist the small summary. This keeps
+// raw listening data on the device and stays well under serverless body limits.
 export async function POST(req: NextRequest) {
   let auth;
   try {
@@ -18,27 +18,24 @@ export async function POST(req: NextRequest) {
   if (!auth)
     return NextResponse.json({ error: "not_connected" }, { status: 401 });
 
-  let payload: unknown;
+  let payload: { aggregate?: ImportAggregate };
   try {
     payload = await req.json();
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const rows = collectRows(payload);
-  if (!rows.length)
-    return NextResponse.json({ error: "no_rows" }, { status: 422 });
+  const agg = payload?.aggregate;
+  if (
+    !agg ||
+    typeof agg.totalMinutes !== "number" ||
+    !Array.isArray(agg.topArtists)
+  ) {
+    return NextResponse.json({ error: "invalid_aggregate" }, { status: 422 });
+  }
 
-  const plays = parseStreamingHistory(rows);
-  if (!plays.length)
-    return NextResponse.json(
-      { error: "no_music_rows", detail: "No music streams found in that file." },
-      { status: 422 },
-    );
-
-  const aggregate = aggregateImport(plays);
   try {
-    await userStore(auth.userId).setImportAggregate(JSON.stringify(aggregate));
+    await userStore(auth.userId).setImportAggregate(JSON.stringify(agg));
   } catch (e) {
     return NextResponse.json(
       { error: "store_failed", detail: e instanceof Error ? e.message : String(e) },
@@ -49,12 +46,12 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     summary: {
-      totalMinutes: aggregate.totalMinutes,
-      totalHours: aggregate.totalHours,
-      totalPlays: aggregate.totalPlays,
-      topArtist: aggregate.topArtists[0]?.artist ?? null,
-      since: aggregate.since,
-      until: aggregate.until,
+      totalMinutes: agg.totalMinutes,
+      totalHours: agg.totalHours,
+      totalPlays: agg.totalPlays,
+      topArtist: agg.topArtists[0]?.artist ?? null,
+      since: agg.since,
+      until: agg.until,
     },
   });
 }

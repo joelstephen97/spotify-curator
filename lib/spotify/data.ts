@@ -161,7 +161,7 @@ export async function getSavedTracks(
  */
 export async function getAllSavedTracks(
   c: SpotifyClient,
-  cap = 600,
+  cap = 10000,
 ): Promise<{ tracks: Track[]; total: number }> {
   const tracks: Track[] = [];
   let total = 0;
