@@ -50,3 +50,31 @@ export async function playTrack(
     return { ok: false, reason: "error", detail: msg };
   }
 }
+
+export type PlayAllResult = PlayResult & { queued?: number };
+
+/**
+ * Play the first track and queue the rest onto the active device — the closest
+ * an individual (Development-Mode) app can get to "add all these to a playlist",
+ * since playlist writes are blocked. Queue order follows the array.
+ */
+export async function playAll(
+  c: SpotifyClient,
+  uris: string[],
+): Promise<PlayAllResult> {
+  if (!uris.length) return { ok: false, reason: "error", detail: "no tracks" };
+
+  const first = await playTrack(c, uris[0]);
+  if (!first.ok) return first;
+
+  let queued = 0;
+  for (const uri of uris.slice(1)) {
+    try {
+      await c.post(`/me/player/queue?uri=${encodeURIComponent(uri)}`, {});
+      queued += 1;
+    } catch {
+      // A single queue failure shouldn't abort the rest.
+    }
+  }
+  return { ok: true, queued };
+}

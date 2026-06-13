@@ -36,7 +36,36 @@ export default function DiscoveriesPage() {
   const [status, setStatus] = useState<Status>({ state: "idle", step: "" });
   const [nowPlaying, setNowPlaying] = useState<string | null>(null);
   const [playMsg, setPlayMsg] = useState<string | null>(null);
+  const [queuing, setQueuing] = useState(false);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Play the whole set: start the first pick, queue the rest onto the active
+  // device. The closest thing to "add all to a playlist" we can do.
+  const playAllPicks = useCallback(async () => {
+    setQueuing(true);
+    setPlayMsg(null);
+    try {
+      const res = await fetch("/api/queue", { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok && body.ok) {
+        setPlayMsg(
+          `▶ Playing your picks — ${body.queued} more queued up next on your Spotify.`,
+        );
+      } else if (body.reason === "no_device") {
+        setPlayMsg("Open Spotify on a device first, then hit Play all.");
+      } else if (body.reason === "forbidden") {
+        setPlayMsg(
+          "Playback needs Spotify Premium + an active device (and may be blocked in Development Mode).",
+        );
+      } else {
+        setPlayMsg("Couldn’t start playback. Open Spotify and try again.");
+      }
+    } catch {
+      setPlayMsg("Couldn’t reach the server.");
+    } finally {
+      setQueuing(false);
+    }
+  }, []);
 
   // Click a pick → start it on the user's active Spotify device (replacing
   // whatever's playing). Falls back to opening the app when there's no active
@@ -166,13 +195,25 @@ export default function DiscoveriesPage() {
             <span className="font-medium">🤖 Weekly Discoveries</span> playlist.
           </p>
         </div>
-        <button
-          onClick={runNow}
-          disabled={running}
-          className="rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 transition-colors hover:bg-emerald-400 disabled:opacity-60"
-        >
-          {running ? "Working…" : "✦ Run discovery now"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {picks.length > 0 && (
+            <button
+              onClick={playAllPicks}
+              disabled={queuing}
+              title="Play the first pick and queue the rest on your active Spotify device"
+              className="rounded-full border border-emerald-500/40 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/10 disabled:opacity-60 dark:text-emerald-300"
+            >
+              {queuing ? "Queuing…" : "▶ Play all"}
+            </button>
+          )}
+          <button
+            onClick={runNow}
+            disabled={running}
+            className="rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 transition-colors hover:bg-emerald-400 disabled:opacity-60"
+          >
+            {running ? "Working…" : "✦ Run discovery now"}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
