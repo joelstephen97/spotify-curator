@@ -2,7 +2,11 @@ import type { SpotifyClient } from "./client";
 
 export type PlayResult =
   | { ok: true }
-  | { ok: false; reason: "no_device" | "forbidden" | "error"; detail?: string };
+  | {
+      ok: false;
+      reason: "no_device" | "forbidden" | "needs_reconnect" | "error";
+      detail?: string;
+    };
 
 interface Device {
   id: string | null;
@@ -24,6 +28,11 @@ export async function playTrack(
     return { ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+
+    // 401 "Permissions missing" = the token lacks the playback scope; the user
+    // connected before we added it and must reconnect.
+    if (/failed: 401/.test(msg))
+      return { ok: false, reason: "needs_reconnect", detail: msg };
 
     // 404 = no active device. Find a device and target it explicitly.
     if (/failed: 404/.test(msg)) {

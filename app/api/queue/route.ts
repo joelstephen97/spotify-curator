@@ -24,6 +24,13 @@ export async function POST() {
     return NextResponse.json({ ok: true, queued: result.queued, total: uris.length });
   return NextResponse.json(
     { ok: false, reason: result.reason, detail: result.detail },
-    { status: result.reason === "no_device" ? 409 : 502 },
+    {
+      status:
+        result.reason === "no_device"
+          ? 409
+          : result.reason === "needs_reconnect"
+            ? 401
+            : 502,
+    },
   );
 }

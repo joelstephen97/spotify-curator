@@ -72,6 +72,19 @@ describe("store", () => {
     expect(await s.getImportAggregate()).toBe('{"totalMinutes":42}');
   });
 
+  it("archives picks newest-first and dedups by uri", async () => {
+    const s = createStore(fakeKV(), "u1");
+    await s.appendPicks([
+      { artist: "A", title: "1", reason: "r", uri: "spotify:track:1" },
+    ]);
+    await s.appendPicks([
+      { artist: "A", title: "1", reason: "r", uri: "spotify:track:1" }, // dup
+      { artist: "B", title: "2", reason: "r", uri: "spotify:track:2" },
+    ]);
+    const all = await s.getAllPicks();
+    expect(all.map((p) => p.uri)).toEqual(["spotify:track:2", "spotify:track:1"]);
+  });
+
   it("registers and lists users", async () => {
     const reg = createRegistry(fakeKV());
     await reg.addUser("alice");

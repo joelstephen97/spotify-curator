@@ -25,10 +25,13 @@ const keys = (uid: string) => ({
   refresh: `spotify:refresh_token:${uid}`,
   seen: `discovery:seen:${uid}`,
   picks: `discovery:latest_picks:${uid}`,
+  allPicks: `discovery:all_picks:${uid}`,
   history: `history:plays:${uid}`,
   importAgg: `import:aggregate:${uid}`,
   status: `discovery:status:${uid}`,
 });
+
+const ALL_PICKS_CAP = 500;
 
 export function createStore(kv: KV, userId: string) {
   const K = keys(userId);
@@ -52,6 +55,22 @@ export function createStore(kv: KV, userId: string) {
     async getLatestPicks(): Promise<Pick[]> {
       const raw = await kv.get(K.picks);
       return raw ? JSON.parse(raw) : [];
+    },
+    // Growing archive of every pick ever suggested (newest first, deduped by
+    // uri, capped) so past discoveries are never lost when a new run overwrites
+    // the "latest" set.
+    async getAllPicks(): Promise<Pick[]> {
+      const raw = await kv.get(K.allPicks);
+      return raw ? JSON.parse(raw) : [];
+    },
+    async appendPicks(picks: Pick[]) {
+      const raw = await kv.get(K.allPicks);
+      const existing: Pick[] = raw ? JSON.parse(raw) : [];
+      const seen = new Set(existing.map((p) => p.uri));
+      const fresh = picks.filter((p) => p.uri && !seen.has(p.uri));
+      if (!fresh.length) return;
+      const merged = [...fresh, ...existing].slice(0, ALL_PICKS_CAP);
+      await kv.set(K.allPicks, JSON.stringify(merged));
     },
     async getPlayHistory(): Promise<PlayEvent[]> {
       const raw = await kv.get(K.history);

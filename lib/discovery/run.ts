@@ -106,7 +106,10 @@ export async function runDiscoveryForUser(
           await trimToCap(client, playlistId, cap);
         },
         markSeen: (keys) => store.markSeen(keys),
-        setLatestPicks: (picks) => store.setLatestPicks(picks),
+        setLatestPicks: async (picks) => {
+          await store.setLatestPicks(picks);
+          await store.appendPicks(picks); // keep a permanent archive
+        },
         onStep: (step) =>
           writeStatus(userId, { state: "running", step, startedAt: now }),
       },

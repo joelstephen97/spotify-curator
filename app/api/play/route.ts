@@ -23,6 +23,13 @@ export async function POST(req: NextRequest) {
   if (result.ok) return NextResponse.json({ ok: true });
   return NextResponse.json(
     { ok: false, reason: result.reason, detail: result.detail },
-    { status: result.reason === "no_device" ? 409 : 502 },
+    {
+      status:
+        result.reason === "no_device"
+          ? 409
+          : result.reason === "needs_reconnect"
+            ? 401
+            : 502,
+    },
   );
 }

@@ -11,8 +11,9 @@ export async function GET() {
   const auth = await authedUser().catch(() => null);
   if (!auth)
     return NextResponse.json({ error: "not_connected" }, { status: 401 });
+  // Return the full archive (newest first) so past suggestions persist.
   return NextResponse.json({
-    picks: await userStore(auth.userId).getLatestPicks(),
+    picks: await userStore(auth.userId).getAllPicks(),
   });
 }
 

@@ -51,6 +51,8 @@ export default function DiscoveriesPage() {
         setPlayMsg(
           `▶ Playing your picks — ${body.queued} more queued up next on your Spotify.`,
         );
+      } else if (body.reason === "needs_reconnect") {
+        setPlayMsg("RECONNECT_PLAYBACK");
       } else if (body.reason === "no_device") {
         setPlayMsg("Open Spotify on a device first, then hit Play all.");
       } else if (body.reason === "forbidden") {
@@ -85,7 +87,12 @@ export default function DiscoveriesPage() {
         return;
       }
       setNowPlaying(null);
-      if (body.reason === "no_device") {
+      if (body.reason === "needs_reconnect") {
+        setPlayMsg(
+          "RECONNECT_PLAYBACK: opening the track in the app for now.",
+        );
+        openInApp(p.uri);
+      } else if (body.reason === "no_device") {
         setPlayMsg(
           "No active Spotify device — opening the app. Start playing once there, then clicks control it.",
         );
@@ -295,9 +302,19 @@ export default function DiscoveriesPage() {
       </AnimatePresence>
 
       {playMsg && (
-        <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300">
-          {playMsg}
-        </p>
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+          {playMsg.startsWith("RECONNECT_PLAYBACK") ? (
+            <span>
+              Playback needs new permissions on your account.{" "}
+              <a href="/api/auth/login" className="font-semibold underline">
+                Reconnect Spotify
+              </a>{" "}
+              to enable click-to-play, then try again.
+            </span>
+          ) : (
+            playMsg
+          )}
+        </div>
       )}
 
       {picks.length === 0 ? (
